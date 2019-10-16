@@ -1,79 +1,97 @@
-resource "ucloud_instance" "rocket_nameSrv"{
+provider "ucloud" {
+  region      = "${var.region}"
+  project_id  = var.project_id
+  public_key  = var.ucloud_pubkey
+  private_key = var.ucloud_secret
 
-  count=var.instance_count
+}
+# create VPC
+resource "ucloud_vpc" "default" {
+  name = "tf-example-intranet-cluster"
+  tag  = "tf-example"
 
-  name="rocket_nameSrv_${var.class}=${count.index}"
+  # vpc network
+  cidr_blocks = ["192.168.0.0/16"]
+}
 
-  availabilit_zone=var.az[count.index % length(var.az)]
+# Subnet to VPC
+resource "ucloud_subnet" "default" {
+  name = "tf-example-intranet-cluster"
+  tag  = "tf-example"
 
-  images_id=var.images_id
+  cidr_block = "192.168.1.0/24"
 
-  root_password=var.root_password
+  vpc_id = "${ucloud_vpc.default.id}"
+}
 
-  charge_type =var.charge_type
+resource "ucloud_instance" "broker" {
 
-  security_group=var.sg_id
+  count = var.instance_count
 
-  subnet_id=var.subnet_id
+  name = "rocketmq_broker_${count.index}"
 
-  data_disk_size=var.data_volume_size
+  availability_zone = var.az[count.index % length(var.az)]
 
+  image_id = var.image_id
 
-  provisioner "local-exec"{
+  vpc_id = "${ucloud_vpc.default.id}"
 
-    command="sleep 10"
+  instance_type = var.instance_type
+
+  root_password = var.root_password
+
+  charge_type = var.charge_type
+
+  subnet_id = "${ucloud_subnet.default.id}"
+
+  data_disk_size = var.data_volume_size
+
+  provisioner "local-exec" {
+
+    command = "sleep 10"
+
   }
+}
+resource "ucloud_eip" "broker" {
+
+  count = var.instance_count
+
+  internet_type = "bgp"
+
+  charge_mode = "traffic"
+
+  charge_type = "dynamic"
+
+  bandwidth = 200
+
+  tag = var.cluster_tag
 
 }
 
 
-
-resource "ucloud_eip" "rocket_nameSrv"{
-
-  count=var.instance_count
-
-  instance_type = "bgp"
-
-  charge_mode="traffic"
-
-  charge_type="dynamic"
-
-  bandwidth=200
-
-  tag=var.cluster_tag
-
+resource "ucloud_eip_association" "broker_ip" {
+  count       = var.instance_count
+  eip_id      = ucloud_eip.broker[count.index].id
+  resource_id = ucloud_instance.broker[count.index].id
 }
 
-
-resource "ucloud_eip_association" "nameSrv_ip"{
-
-  count=var.instance_count
-
-  eip_id=ucloud_eip.roketmq_nameSrv[count.index].id
-
-  resource_id=ucloud_instance.rocket_nameSrv[count.index].id
-
-}
 
 
 locals {
 
-  setup-script-path="${path-module}/setup.sh"
+  setup-scrip-path = "setup.sh"
 
 }
 
 
 resource "null_resource" "setup" {
   count = var.instance_count
-  depends_on = [
-    ucloud_eip_association.nomad_ip,
-  ]
   provisioner "remote-exec" {
     connection {
       type     = "ssh"
       user     = "root"
       password = var.root_password
-      host     = ucloud_eip.rocketmq_nameSrv[count.index].public_ip
+      host     = ucloud_eip.broker[count.index].public_ip
     }
   }
 }
