@@ -1,17 +1,43 @@
-variable region {}
-variable az {
-  type = list(string)
+variable "region" {
+  default = "cn-bj2"
 }
-variable root_password {}
-variable sg_id {}
-variable vpc_id {}
-variable subnet_id {}
-variable cluster_id {}
-variable instance_count {}
-variable image_id {}
-variable instance_type {}
-variable consul_server_ips {
-  type = list(string)
+
+variable "az" {
+  default = [
+    "cn-bj2-05",
+  ]
 }
-variable data_volume_size {}
+
+variable "project_id" {
+  default = "org-hiny2f"
+}
+
+variable "ucloud_pubkey" {}
+
+
+variable "ucloud_secret" {}
+
+variable "root_password" {}
+
+variable "image_id" {
+  default = "uimage-cvaw3u33"
+}
+variable "charge_type" {
+  default = "hour"
+}
+variable "data_volume_size" {
+  default = 500
+}
+
+variable "cluster_tag" {
+  default = "Benchmark"
+}
+variable "instance_type" {
+  default = "o-highmem-4"
+}
+
+variable "instance_count" {
+  default = 3
+}
+
 

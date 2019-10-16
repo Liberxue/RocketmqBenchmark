@@ -1,5 +1,5 @@
-output "Public_ips"{
+output "public_ip" {
 
-  value = ucloud_eip.rocket_broker.*.Public_ips
+  value = ucloud_eip.broker.*.public_ip
 
 }
