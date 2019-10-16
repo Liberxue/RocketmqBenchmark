@@ -49,7 +49,7 @@ resource "ucloud_eip_association" "nameSrv_ip"{
 
   count=var.instance_count
 
-  eip_id=ucloud_eip.roketmq_nameSrv[count.index]≥.id
+  eip_id=ucloud_eip.roketmq_nameSrv[count.index].id
 
   resource_id=ucloud_instance.rocket_nameSrv[count.index].id
 
