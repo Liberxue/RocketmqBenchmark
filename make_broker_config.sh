@@ -1,5 +1,5 @@
 mkdir /cfg
-cat>/conf/broker.conf<<-EOF
+cat>/opt/rocketmq-4.5.2/conf/broker.conf<<-EOF
 brokerClusterName = RaftCluster
 brokerName=RaftNode0${index}
 brokerIP1=${broker_ip}

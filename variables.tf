@@ -42,4 +42,6 @@ variable "instance_count" {
   default = 3
 }
 
-
+variable "allow_ip" {
+  default = "0.0.0.0/0"
+}

@@ -25,6 +25,28 @@ resource "ucloud_subnet" "default" {
   vpc_id = "${ucloud_vpc.default.id}"
 }
 
+resource ucloud_security_group rocketmq_sg {
+  rules {
+    port_range = "22"
+    protocol   = "tcp"
+    cidr_block = var.allow_ip
+    policy     = "accept"
+  }
+
+  rules {
+    port_range = "9876"
+    protocol   = "tcp"
+    cidr_block = var.allow_ip
+    policy     = "accept"
+  }
+
+  rules {
+    port_range = "20000-50000"
+    protocol   = "tcp"
+    cidr_block = var.allow_ip
+    policy     = "accept"
+  }
+}
 # Rocketmq nameSrv
 resource "ucloud_instance" "namesrv" {
 
@@ -46,6 +68,8 @@ resource "ucloud_instance" "namesrv" {
 
   subnet_id = "${ucloud_subnet.default.id}"
 
+  security_group = ucloud_security_group.rocketmq_sg.id
+
   provisioner "local-exec" {
 
     command = "sleep 10"
@@ -66,6 +90,14 @@ resource "ucloud_disk" "namesrv" {
   disk_size = var.nameSrv_data_volume_size
 }
 
+# attach cloud disk to instance
+resource "ucloud_disk_attachment" "namesrv" {
+  count       = var.instance_count
+  availability_zone = var.az[count.index % length(var.az)]
+  disk_id           = ucloud_disk.namesrv[count.index].id
+  instance_id       = ucloud_instance.namesrv[count.index].id
+}
+
 resource "ucloud_eip" "namesrv" {
 
   count = var.instance_count
@@ -81,6 +113,7 @@ resource "ucloud_eip" "namesrv" {
   tag = var.cluster_tag
 
 }
+
 
 resource "ucloud_eip_association" "namesrvIP" {
   count       = var.instance_count
@@ -98,8 +131,8 @@ resource "null_resource" "setup_namesvr" {
       host     = ucloud_eip.namesrv[count.index].public_ip
     }
     inline = [
-      file("./setup.sh"),
-      "nohup sh bin/mqnamesrv &"
+      file("setup.sh"),
+      file("startName.sh")
     ]
   }
 }
@@ -127,6 +160,7 @@ resource "ucloud_instance" "broker" {
 
   subnet_id = "${ucloud_subnet.default.id}"
 
+  security_group = ucloud_security_group.rocketmq_sg.id
 
   provisioner "local-exec" {
 
@@ -144,9 +178,17 @@ resource "ucloud_disk" "broker" {
 
   name = "rocketmq_broker_${count.index}"
 
-  disk_type ="rssd_data_disk"
+  disk_type = "rssd_data_disk"
 
   disk_size = var.data_volume_size
+}
+
+# attach cloud disk to instance
+resource "ucloud_disk_attachment" "broker" {
+  count       = var.instance_count
+  availability_zone = var.az[count.index % length(var.az)]
+  disk_id           = ucloud_disk.broker[count.index].id
+  instance_id       =ucloud_instance.broker[count.index].id
 }
 
 resource "ucloud_eip" "broker" {
@@ -172,11 +214,13 @@ resource "ucloud_eip_association" "brokerIP" {
   resource_id = ucloud_instance.broker[count.index].id
 }
 
+
+
 # create broker conf
 
 data "template_file" "make_broker_config" {
   count    = var.instance_count
-  template = file("./make_broker_config.sh")
+  template = file("make_broker_config.sh")
   vars = {
     index     = count.index
     nameSrv0  = ucloud_instance.namesrv.*.private_ip[0]
@@ -201,9 +245,9 @@ resource "null_resource" "setup_broker" {
       host     = ucloud_eip.broker[count.index].public_ip
     }
     inline = [
-      file("./setup.sh"),
+      file("setup.sh"),
       data.template_file.make_broker_config.*.rendered[count.index],
-      "nohup sh bin/mqbroker -c /conf/broker.conf &"
+      file("startBroker.sh"),
     ]
   }
 }
