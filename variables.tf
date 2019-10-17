@@ -20,20 +20,22 @@ variable "ucloud_secret" {}
 variable "root_password" {}
 
 variable "image_id" {
-  default = "uimage-cvaw3u33"
+  default = "uimage-ws0fvn2z"
 }
 variable "charge_type" {
-  default = "hour"
+  default = "dynamic"
 }
 variable "data_volume_size" {
   default = 500
 }
-
+variable "nameSrv_data_volume_size" {
+  default = 20
+}
 variable "cluster_tag" {
   default = "Benchmark"
 }
 variable "instance_type" {
-  default = "o-highmem-4"
+  default = "o-basic-8"
 }
 
 variable "instance_count" {
